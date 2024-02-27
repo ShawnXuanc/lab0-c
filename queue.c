@@ -42,8 +42,6 @@ void q_free(struct list_head *l)
 
 bool new_element(element_t **node, char *s)
 {
-    if (!s)
-        return true;
     int len = strlen(s) + 1;
     (*node) = malloc(sizeof(element_t));
     char *tmp_s = malloc(len);
@@ -95,7 +93,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     struct list_head *remove_list = head->next;
     element_t *tmp = list_entry(remove_list, element_t, list);
     if (sp) {
-        strncpy(sp, tmp->value, bufsize - 1);
+        strncpy(sp, tmp->value, bufsize);
         sp[bufsize - 1] = '\0';
     }
     list_del(remove_list);
@@ -107,10 +105,10 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
     if (!head || list_empty(head))
         return NULL;
-    struct list_head *remove_list = head->next;
+    struct list_head *remove_list = head->prev;
     element_t *tmp = list_entry(remove_list, element_t, list);
     if (sp) {
-        strncpy(sp, tmp->value, bufsize - 1);
+        strncpy(sp, tmp->value, bufsize);
         sp[bufsize - 1] = '\0';
     }
     list_del(remove_list);
@@ -134,6 +132,18 @@ int q_size(struct list_head *head)
 /* Delete the middle node in queue */
 bool q_delete_mid(struct list_head *head)
 {
+    if (!head || list_empty(head))
+        return false;
+
+    struct list_head *slow = head->next, *fast = head->next;
+    while (fast != head && fast->next != head) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    element_t *del_node = list_entry(slow, element_t, list);
+    list_del(slow);
+    free(del_node->value);
+    free(del_node);
     return true;
 }
 
