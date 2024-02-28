@@ -152,7 +152,7 @@ bool q_delete_dup(struct list_head *head)
         return false;
     struct list_head *pre = head->next, *dup = head->next->next;
 
-    while (pre != head && dup != head) {
+    do {
         element_t *pre_ele = list_entry(pre, element_t, list),
                   *dup_ele = list_entry(dup, element_t, list);
         if (!strcmp(pre_ele->value, dup_ele->value)) {
@@ -164,15 +164,20 @@ bool q_delete_dup(struct list_head *head)
                 q_release_element(list_entry(tmp, element_t, list));
                 dup_ele = list_entry(dup, element_t, list);
             }
+            // some problem here
             tmp = pre;
             pre = pre->prev;
             list_del(tmp);
             q_release_element(list_entry(tmp, element_t, list));
+            if (pre == head) {
+                pre = pre->next;
+                dup = dup->next;
+            }
         } else {
             pre = pre->next;
             dup = dup->next;
         }
-    }
+    } while (pre != head && dup != head);
     return true;
 }
 
