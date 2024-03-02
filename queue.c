@@ -147,8 +147,9 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    if (!head || list_empty(head))
+    if (!head || list_empty(head) || list_is_singular(head))
         return false;
+    q_sort(head, false);
     struct list_head *pre = head->next, *dup = head->next->next;
 
     do {
@@ -288,6 +289,7 @@ int q_ascend(struct list_head *head)
 {
     if (!head || list_empty(head) || list_is_singular(head))
         return q_size(head);
+    int count = 1;
     struct list_head *cur = head->prev, *move = cur->prev, *safe;
     for (safe = move->prev; move != head; move = safe, safe = move->prev) {
         element_t *cur_ele = list_entry(cur, element_t, list);
@@ -297,9 +299,10 @@ int q_ascend(struct list_head *head)
             q_release_element(move_ele);
         } else {
             cur = move;
+            count += 1;
         }
     }
-    return q_size(head);
+    return count;
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
@@ -308,6 +311,7 @@ int q_descend(struct list_head *head)
 {
     if (!head || list_empty(head) || list_is_singular(head))
         return q_size(head);
+    int count = 1;
     struct list_head *cur = head->prev, *move = cur->prev, *safe;
     for (safe = move->prev; move != head; move = safe, safe = move->prev) {
         element_t *cur_ele = list_entry(cur, element_t, list);
@@ -317,9 +321,10 @@ int q_descend(struct list_head *head)
             q_release_element(move_ele);
         } else {
             cur = move;
+            count += 1;
         }
     }
-    return q_size(head);
+    return count;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
