@@ -215,8 +215,72 @@ void q_reverseK(struct list_head *head, int k)
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
 }
 
+int cmp(const char *a, const char *b, bool descend)
+{
+    if (descend)
+        return strcmp(b, a);
+    else
+        return strcmp(a, b);
+}
+
+struct list_head *merge(struct list_head *l1,
+                        struct list_head *l2,
+                        bool descend)
+{
+    LIST_HEAD(list);
+    INIT_LIST_HEAD(&list);
+    struct list_head *tmp = &list;
+    while (l1 && l2) {
+        element_t *e1 = list_entry(l1, element_t, list),
+                  *e2 = list_entry(l2, element_t, list);
+        if (cmp(e1->value, e2->value, descend) < 0) {
+            tmp->next = l1;
+            l1 = l1->next;
+        } else {
+            tmp->next = l2;
+            l2 = l2->next;
+        }
+        tmp = tmp->next;
+    }
+    tmp->next = l1 ? l1 : l2;
+    return list.next;
+}
+
+struct list_head *q_mergeSort(struct list_head *head, bool descend)
+{
+    if (!head || !head->next)
+        return head;
+
+
+    struct list_head *slow = head, *fast = head->next, *right;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    right = slow->next;
+    slow->next = NULL;
+    head = q_mergeSort(head, descend);
+    right = q_mergeSort(right, descend);
+    return merge(head, right, descend);
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head))
+        return;
+
+    struct list_head *list = head->next, *pre, *node;
+    head->prev->next = NULL;
+    head->next = q_mergeSort(list, descend);
+
+    for (pre = head, node = head->next; node->next != NULL;
+         pre = node, node = node->next) {
+        node->prev = pre;
+    }
+    node->next = head;
+    head->prev = node;
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
