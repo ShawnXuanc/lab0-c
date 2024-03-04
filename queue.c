@@ -149,34 +149,20 @@ bool q_delete_dup(struct list_head *head)
 {
     if (!head || list_empty(head) || list_is_singular(head))
         return false;
-    q_sort(head, false);
-    struct list_head *pre = head->next, *dup = head->next->next;
-
-    do {
-        element_t *pre_ele = list_entry(pre, element_t, list),
-                  *dup_ele = list_entry(dup, element_t, list);
-        if (!strcmp(pre_ele->value, dup_ele->value)) {
-            struct list_head *tmp;
-            while (dup != head && !strcmp(dup_ele->value, pre_ele->value)) {
-                tmp = dup;
-                dup = dup->next;
-                list_del(tmp);
-                q_release_element(list_entry(tmp, element_t, list));
-                dup_ele = list_entry(dup, element_t, list);
-            }
-            tmp = pre;
-            pre = pre->prev;
-            list_del(tmp);
-            q_release_element(list_entry(tmp, element_t, list));
-            if (pre == head) {
-                pre = pre->next;
-                dup = dup->next;
-            }
+    element_t *node, *safe, *tmp = NULL;
+    list_for_each_entry_safe (node, safe, head, list) {
+        if (&safe->list != head && !strcmp(node->value, safe->value)) {
+            list_del(&node->list);
+            q_release_element(node);
+            tmp = safe;
         } else {
-            pre = pre->next;
-            dup = dup->next;
+            if (tmp) {
+                list_del(&node->list);
+                q_release_element(node);
+            }
+            tmp = NULL;
         }
-    } while (pre != head && dup != head);
+    }
     return true;
 }
 
