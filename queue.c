@@ -157,8 +157,8 @@ bool q_delete_dup(struct list_head *head)
             tmp = safe;
         } else {
             if (tmp) {
-                list_del(&node->list);
-                q_release_element(node);
+                list_del(&tmp->list);
+                q_release_element(tmp);
             }
             tmp = NULL;
         }
