@@ -42,7 +42,7 @@
 
 #define ENOUGH_MEASURE 10000
 #define TEST_TRIES 10
-
+#define DUDECT_NUMBER_PERCENTILES (100)
 static t_context_t *t;
 
 /* threshold values for Welch's t-test */
@@ -116,6 +116,34 @@ static bool report(void)
     return true;
 }
 
+
+static int cmp(const int64_t *a, const int64_t *b)
+{
+    return (int) (*a - *b);
+}
+
+
+static int64_t percentile(int64_t *a_sorted, double which, size_t size)
+{
+    size_t array_position = (size_t) ((double) size * (double) which);
+    assert(array_position < size);
+    return a_sorted[array_position];
+}
+
+
+static void prepare_percentiles(int64_t *exec_times, int64_t *percentiles)
+{
+    qsort(exec_times, N_MEASURES, sizeof(int64_t),
+          (int (*)(const void *, const void *)) cmp);
+    for (size_t i = 0; i < DUDECT_NUMBER_PERCENTILES; i++) {
+        percentiles[i] = percentile(
+            exec_times,
+            1 - (pow(0.5, 10 * (double) (i + 1) / DUDECT_NUMBER_PERCENTILES)),
+            N_MEASURES);
+    }
+}
+
+
 static bool doit(int mode)
 {
     int64_t *before_ticks = calloc(N_MEASURES + 1, sizeof(int64_t));
@@ -123,25 +151,31 @@ static bool doit(int mode)
     int64_t *exec_times = calloc(N_MEASURES, sizeof(int64_t));
     uint8_t *classes = calloc(N_MEASURES, sizeof(uint8_t));
     uint8_t *input_data = calloc(N_MEASURES * CHUNK_SIZE, sizeof(uint8_t));
-
+    int64_t *percentiles = calloc(N_MEASURES, sizeof(int64_t));
     if (!before_ticks || !after_ticks || !exec_times || !classes ||
         !input_data) {
         die();
     }
 
-    prepare_inputs(input_data, classes);
+    bool first_time = percentiles[DUDECT_NUMBER_PERCENTILES - 1] == 0;
 
+    prepare_inputs(input_data, classes);
     bool ret = measure(before_ticks, after_ticks, input_data, mode);
-    differentiate(exec_times, before_ticks, after_ticks);
-    update_statistics(exec_times, classes);
-    ret &= report();
+    if (first_time) {
+        prepare_percentiles(exec_times, percentiles);
+    } else {
+        differentiate(exec_times, before_ticks, after_ticks);
+        update_statistics(exec_times, classes);
+        ret &= report();
+    }
+
 
     free(before_ticks);
     free(after_ticks);
     free(exec_times);
     free(classes);
     free(input_data);
-
+    free(percentiles);
     return ret;
 }
 
@@ -170,8 +204,11 @@ static bool test_const(char *text, int mode)
     return result;
 }
 
-#define DUT_FUNC_IMPL(op) \
-    bool is_##op##_const(void) { return test_const(#op, DUT(op)); }
+#define DUT_FUNC_IMPL(op)                \
+    bool is_##op##_const(void)           \
+    {                                    \
+        return test_const(#op, DUT(op)); \
+    }
 
 #define _(x) DUT_FUNC_IMPL(x)
 DUT_FUNCS
