@@ -354,7 +354,7 @@ int q_merge(struct list_head *head, bool descend)
     return size;
 }
 
-void link(struct list_head *n1, struct list_head *n2)
+void swap(struct list_head *n1, struct list_head *n2)
 {
     struct list_head *pre, *pn;
     pre = n1->prev, pn = n2->next;
@@ -364,6 +364,9 @@ void link(struct list_head *n1, struct list_head *n2)
 
 void q_shuffle(struct list_head *head)
 {
+    if (!head || list_is_singular(head))
+        return;
+
     int len = q_size(head), i, j;
     struct list_head *move = head->prev, *tmp = NULL;
     for (i = 0; i < len; ++i, move = move->prev) {
@@ -373,7 +376,7 @@ void q_shuffle(struct list_head *head)
         for (j = 0, tmp = head->next; j < rand_n; ++j) {
             tmp = tmp->next;
         }
-        link(tmp, move);
+        swap(tmp, move);
         move = tmp;
     }
 }
