@@ -353,3 +353,27 @@ int q_merge(struct list_head *head, bool descend)
     list_splice(&list, list_first_entry(head, queue_contex_t, chain)->q);
     return size;
 }
+
+void link(struct list_head *n1, struct list_head *n2)
+{
+    struct list_head *pre, *pn;
+    pre = n1->prev, pn = n2->next;
+    list_move(n2, pre);
+    list_move_tail(n1, pn);
+}
+
+void q_shuffle(struct list_head *head)
+{
+    int len = q_size(head), i, j;
+    struct list_head *move = head->prev, *tmp = NULL;
+    for (i = 0; i < len; ++i, move = move->prev) {
+        int rand_n = rand() % (len - i);
+        if (rand_n == len - i - 1)
+            continue;
+        for (j = 0, tmp = head->next; j < rand_n; ++j) {
+            tmp = tmp->next;
+        }
+        link(tmp, move);
+        move = tmp;
+    }
+}
