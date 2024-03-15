@@ -151,7 +151,7 @@ static bool doit(int mode)
     int64_t *exec_times = calloc(N_MEASURES, sizeof(int64_t));
     uint8_t *classes = calloc(N_MEASURES, sizeof(uint8_t));
     uint8_t *input_data = calloc(N_MEASURES * CHUNK_SIZE, sizeof(uint8_t));
-    int64_t *percentiles = calloc(N_MEASURES, sizeof(int64_t));
+    int64_t *percentiles = calloc(DUDECT_NUMBER_PERCENTILES, sizeof(int64_t));
     if (!before_ticks || !after_ticks || !exec_times || !classes ||
         !input_data) {
         die();
