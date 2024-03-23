@@ -14,4 +14,5 @@ typedef uint8_t u8;
 
 
 void list_sort(struct list_head *head);
+void timsort(struct list_head *head);
 #endif
