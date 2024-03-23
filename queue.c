@@ -167,16 +167,10 @@ void q_swap(struct list_head *head)
     if (!head || list_empty(head))
         return;
 
-    for (struct list_head *n1 = head->next, *pre = head;
-         n1 != head && n1->next != head; n1 = pre->next) {
-        struct list_head *n2 = n1->next;
-        n2->next->prev = n1;
-        n1->next = n2->next;
-        n2->next = n1;
-        n2->prev = n1->prev;
-        n1->prev = n2;
-        pre->next = n2;
-        pre = n1;
+    for (struct list_head *n1 = head->next->next, *pre = head;
+         n1 != head && n1->prev != head; n1 = pre->next->next) {
+        list_move(n1, pre);
+        pre = n1->next;
     }
 }
 
