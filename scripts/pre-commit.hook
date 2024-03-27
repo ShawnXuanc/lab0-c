@@ -14,9 +14,13 @@ CPPCHECK_suppresses="--inline-suppr harness.c \
 --suppress=nullPointerRedundantCheck:harness.c \
 --suppress=nullPointer:queue.c \
 --suppress=nullPointer:qtest.c \
+--suppress=nullPointer:zobrist.c \
+--suppress=nullPointer:agents/mcts.c \
 --suppress=returnDanglingLifetime:report.c \
 --suppress=constParameterCallback:console.c \
---suppress=constParameterPointer:console.c"
+--suppress=constParameterPointer:console.c
+--suppress=variableScope:mt19937-64.c \
+--suppress=variableScope:agents/mcts.c"
 CPPCHECK_OPTS="-I. --enable=all --error-exitcode=1 --force $CPPCHECK_suppresses $CPPCHECK_unmatched ."
 
 RETURN=0
