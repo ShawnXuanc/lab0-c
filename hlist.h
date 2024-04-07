@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #define WRITE_ONCE(var, val) (*((volatile typeof(val) *) (&(var))) = (val))
-
 #define READ_ONCE(var) (*((volatile typeof(var) *) (&(var))))
 
 
