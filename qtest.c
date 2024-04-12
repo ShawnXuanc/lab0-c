@@ -1257,7 +1257,8 @@ void ttt_game()
     memset(table, ' ', N_GRIDS);
     char turn = 'X';
     char ai = 'O';
-    negamax_init();
+    if (ttt_mode == 1)
+        negamax_init();
     while (1) {
         char win = check_win(table);
         if (win == 'D') {
