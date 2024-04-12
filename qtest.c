@@ -42,6 +42,7 @@ extern int show_entropy;
  * solution code
  */
 #include "agents/mcts.h"
+#include "agents/negamax.h"
 #include "console.h"
 #include "game.h"
 #include "list_sort.h"
@@ -75,7 +76,7 @@ static int fail_count = 0;
 static int string_length = MAXSTRING;
 
 static int descend = 0;
-
+static int ttt_mode = 0;
 #define MIN_RANDSTR_LEN 5
 #define MAX_RANDSTR_LEN 10
 static const char charset[] = "abcdefghijklmnopqrstuvwxyz";
@@ -1213,14 +1214,50 @@ static int get_input(char player)
     return GET_INDEX(y, x);
 }
 
-void mtcs_ttt()
+void game_time()
+{
+    time_t current_time;
+    struct tm *local_time;
+    current_time = time(NULL);
+    local_time = localtime(&current_time);
+    printf("time： %d:%d:%d\n", local_time->tm_hour, local_time->tm_min,
+           local_time->tm_sec);
+}
+
+void select_mode(char *table, char *turn, char *ai)
+{
+    if (ttt_mode == 0) {
+        draw_board(table);
+        int move;
+        while (1) {
+            move = get_input(*turn);
+            if (table[move] == ' ') {
+                break;
+            }
+            printf("Invalid operation: the position has been marked\n");
+        }
+        table[move] = *turn;
+        record_move(move);
+    } else if (ttt_mode == 1) {
+        sleep(1);
+        draw_board(table);
+        int move = negamax_predict(table, *ai).move;
+        if (move != -1) {
+            table[move] = *turn;
+            record_move(move);
+        }
+    }
+    game_time();
+}
+
+void ttt_game()
 {
     srand(time(NULL));
     char table[N_GRIDS];
     memset(table, ' ', N_GRIDS);
     char turn = 'X';
     char ai = 'O';
-
+    negamax_init();
     while (1) {
         char win = check_win(table);
         if (win == 'D') {
@@ -1239,29 +1276,18 @@ void mtcs_ttt()
                 table[move] = ai;
                 record_move(move);
             }
-
         } else {
-            draw_board(table);
-            int move;
-            while (1) {
-                move = get_input(turn);
-                if (table[move] == ' ') {
-                    break;
-                }
-                printf("Invalid operation: the position has been marked\n");
-            }
-            table[move] = turn;
-            record_move(move);
+            select_mode(table, &turn, &ai);
         }
         turn = turn == 'X' ? 'O' : 'X';
     }
     print_moves();
+    move_count = 0;
 }
-
 
 static bool do_ttt(int argc, char *argv[])
 {
-    mtcs_ttt();
+    ttt_game();
     return 0;
 }
 static void console_init()
@@ -1308,6 +1334,7 @@ static void console_init()
     ADD_COMMAND(listsort, "Using the list_sort from linux kernel version ", "");
     ADD_COMMAND(timsort, "Using the timsort", "");
     ADD_COMMAND(ttt, "Play 4x4 Tic-Tac-Toe game", "");
+    add_param("mode", &ttt_mode, "ttt_mode 0: player vs ai 1: ai vs ai", NULL);
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
     add_param("malloc", &fail_probability, "Malloc failure probability percent",
