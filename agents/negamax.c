@@ -99,3 +99,8 @@ move_t negamax_predict(char *table, char player)
     }
     return result;
 }
+
+int __negamax(char *table, char player)
+{
+    return negamax_predict(table, player).move;
+}

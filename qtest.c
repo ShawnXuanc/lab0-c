@@ -49,6 +49,7 @@ extern int show_entropy;
 #include "queue.h"
 #include "report.h"
 #include "shuffle.h"
+#include "ttt_coro.h"
 /* Settable parameters */
 
 #define HISTORY_LEN 20
@@ -1250,10 +1251,11 @@ void select_mode(char *table, char *turn, char *ai)
     game_time();
 }
 
+char table[N_GRIDS];
 void ttt_game()
 {
     srand(time(NULL));
-    char table[N_GRIDS];
+
     memset(table, ' ', N_GRIDS);
     char turn = 'X';
     char ai = 'O';
@@ -1291,6 +1293,135 @@ static bool do_ttt(int argc, char *argv[])
     ttt_game();
     return 0;
 }
+
+
+static void task_add(struct task *task)
+{
+    list_add_tail(&task->list, &tasklist);
+}
+
+static void task_switch()
+{
+    if (!list_empty(&tasklist)) {
+        struct task *t = list_first_entry(&tasklist, struct task, list);
+        list_del(&t->list);
+        cur_task = t;
+        longjmp(t->env, 1);
+    }
+}
+
+void schedule(void)
+{
+    static int i = 0;
+
+    setjmp(sched);
+
+    while (ntasks-- > 0) {
+        struct arg arg = args[i];
+        tasks[i++](&arg);
+        printf("Never reached\n");
+    }
+    task_switch();
+}
+
+void checktask(void *arg)
+{
+    struct task *task = malloc(sizeof(struct task));
+    strncpy(task->task_name, ((struct arg *) arg)->task_name, 10);
+    task->turn = ((struct arg *) arg)->turn;
+    INIT_LIST_HEAD(&task->list);
+
+    if (setjmp(task->env) == 0) {
+        task_add(task);
+        longjmp(sched, 1);
+    }
+
+    task = cur_task;
+
+    for (;;) {
+        if (setjmp(task->env) == 0) {
+            char win = check_win(table);
+            if (win == 'D') {
+                printf("It is a draw!\n");
+                move_count = 0;
+                memset(table, ' ', N_GRIDS);
+            } else if (win != ' ') {
+                printf("%c won!\n", win);
+                print_moves();
+                move_count = 0;
+                memset(table, ' ', N_GRIDS);
+            }
+            task_add(task);
+            task_switch();
+        }
+        task = cur_task;
+    }
+    longjmp(sched, 1);
+}
+
+void algotask(void *arg)
+{
+    struct task *task = malloc(sizeof(struct task));
+    strncpy(task->task_name, ((struct arg *) arg)->task_name, 10);
+    task->turn = ((struct arg *) arg)->turn;
+    task->ai_algo = ((struct arg *) arg)->ai_algo;
+    INIT_LIST_HEAD(&task->list);
+
+    if (setjmp(task->env) == 0) {
+        task_add(task);
+        longjmp(sched, 1);
+    }
+
+    task = cur_task;
+
+    for (;;) {
+        if (setjmp(task->env) == 0) {
+            game_time();
+            sleep(1);
+            draw_board(table);
+            int move = task->ai_algo(table, task->turn);
+            if (move != -1) {
+                table[move] = task->turn;
+                record_move(move);
+            }
+            task_add(task);
+            task_switch();
+        }
+        task = cur_task;
+    }
+    longjmp(sched, 1);
+}
+
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+int tttcoro(void)
+{
+    void (*registered_task[])(void *) = {checktask, algotask, algotask};
+    struct arg arg0 = {.turn = 'C', .task_name = "result", .ai_algo = NULL};
+    struct arg arg1 = {.turn = 'X', .task_name = "mcts", .ai_algo = mcts};
+    struct arg arg2 = {
+        .turn = 'O', .task_name = "negamax", .ai_algo = __negamax};
+    memset(table, ' ', N_GRIDS);
+    srand(time(NULL));
+
+    negamax_init();
+
+    struct arg registered_arg[] = {arg0, arg1, arg2};
+    tasks = registered_task;
+    args = registered_arg;
+    ntasks = ARRAY_SIZE(registered_task);
+
+    schedule();
+
+    return 0;
+}
+
+static bool do_tttcoro()
+{
+    tttcoro();
+    return 0;
+}
+
 static void console_init()
 {
     ADD_COMMAND(new, "Create new queue", "");
@@ -1335,6 +1466,7 @@ static void console_init()
     ADD_COMMAND(listsort, "Using the list_sort from linux kernel version ", "");
     ADD_COMMAND(timsort, "Using the timsort", "");
     ADD_COMMAND(ttt, "Play 4x4 Tic-Tac-Toe game", "");
+    ADD_COMMAND(tttcoro, "4x4 ai vs ai coroutine version Tic-Tac-Toe game", "");
     add_param("mode", &ttt_mode, "ttt_mode 0: player vs ai 1: ai vs ai", NULL);
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
