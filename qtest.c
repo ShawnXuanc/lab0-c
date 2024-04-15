@@ -1378,12 +1378,12 @@ void algotask(void *arg)
         if (setjmp(task->env) == 0) {
             game_time();
             sleep(1);
-            draw_board(table);
             int move = task->ai_algo(table, task->turn);
             if (move != -1) {
                 table[move] = task->turn;
                 record_move(move);
             }
+            draw_board(table);
             task_add(task);
             task_switch();
         }
