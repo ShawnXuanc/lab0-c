@@ -1341,6 +1341,9 @@ void checktask(void *arg)
     for (;;) {
         if (setjmp(task->env) == 0) {
             char win = check_win(table);
+            draw_board(table);
+            game_time();
+            sleep(1);
             if (win == 'D') {
                 printf("It is a draw!\n");
                 move_count = 0;
@@ -1376,14 +1379,11 @@ void algotask(void *arg)
 
     for (;;) {
         if (setjmp(task->env) == 0) {
-            game_time();
-            sleep(1);
             int move = task->ai_algo(table, task->turn);
             if (move != -1) {
                 table[move] = task->turn;
                 record_move(move);
             }
-            draw_board(table);
             task_add(task);
             task_switch();
         }
